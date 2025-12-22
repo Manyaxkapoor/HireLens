@@ -2,12 +2,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from .core.config import settings
+from .api.scoring import router as scoring_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="Explainable Resume Screening Platform API"
 )
+
+app.include_router(scoring_router, prefix="/api/v1", tags=["scoring"])
 
 
 @app.get("/health")
