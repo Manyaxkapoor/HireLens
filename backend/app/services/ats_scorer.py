@@ -1,5 +1,6 @@
 import spacy
 from typing import Dict, List
+from sentence_transformers import SentenceTransformer, util
 
 # Load spaCy model (assumes en_core_web_sm is installed)
 try:
@@ -7,6 +8,13 @@ try:
 except OSError:
     nlp = None
     print("Warning: spaCy model 'en_core_web_sm' not found. Install with: python -m spacy download en_core_web_sm")
+
+# Load sentence transformer model
+try:
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+except Exception:
+    model = None
+    print("Warning: SentenceTransformer model not loaded. Semantic similarity will be disabled.")
 
 
 # Default role configuration for backend developer (can be extended for other roles)
@@ -55,9 +63,28 @@ def extract_skills(text: str) -> List[str]:
     return list(set(skills))
 
 
+def compute_semantic_similarity(text1: str, text2: str) -> float:
+    """
+    Compute semantic similarity between two texts using sentence embeddings.
+
+    Args:
+        text1: First text
+        text2: Second text
+
+    Returns:
+        Similarity score as percentage (0-100)
+    """
+    if not model or not text1 or not text2:
+        return 0.0
+
+    embeddings = model.encode([text1, text2])
+    similarity = util.cos_sim(embeddings[0], embeddings[1]).item()
+    return similarity * 100
+
+
 def calculate_ats_score(resume_text: str, jd_text: str, role_config: Dict[str, float] = None) -> Dict:
     """
-    Calculate ATS compatibility score based on weighted keyword matching.
+    Calculate ATS compatibility score combining keyword matching and semantic similarity.
 
     Args:
         resume_text: Extracted text from resume
@@ -65,7 +92,7 @@ def calculate_ats_score(resume_text: str, jd_text: str, role_config: Dict[str, f
         role_config: Dictionary of skill weights for the role (optional)
 
     Returns:
-        Dictionary with score, matched skills, and missing skills
+        Dictionary with keyword score, semantic score, combined score, and skill analysis
     """
     if role_config is None:
         role_config = DEFAULT_ROLE_CONFIG
@@ -73,7 +100,7 @@ def calculate_ats_score(resume_text: str, jd_text: str, role_config: Dict[str, f
     resume_skills = extract_skills(resume_text)
     jd_skills = extract_skills(jd_text)
 
-    # Calculate weighted score
+    # Calculate keyword-based score
     matched_weight = sum(
         role_config.get(skill, 0)
         for skill in resume_skills
@@ -81,14 +108,22 @@ def calculate_ats_score(resume_text: str, jd_text: str, role_config: Dict[str, f
     )
     total_weight = sum(role_config.values())
 
-    score = (matched_weight / total_weight) * 100 if total_weight > 0 else 0
+    keyword_score = (matched_weight / total_weight) * 100 if total_weight > 0 else 0
+
+    # Calculate semantic similarity
+    semantic_score = compute_semantic_similarity(resume_text, jd_text)
+
+    # Combine scores (60% keyword, 40% semantic)
+    combined_score = (keyword_score * 0.6) + (semantic_score * 0.4)
 
     # Find matched and missing skills
     matched_skills = [skill for skill in resume_skills if skill in jd_skills]
     missing_skills = [skill for skill in jd_skills if skill not in resume_skills]
 
     return {
-        "score": round(score, 2),
+        "keyword_score": round(keyword_score, 2),
+        "semantic_score": round(semantic_score, 2),
+        "combined_score": round(combined_score, 2),
         "matched_skills": matched_skills,
         "missing_skills": missing_skills,
         "total_possible_weight": total_weight,
