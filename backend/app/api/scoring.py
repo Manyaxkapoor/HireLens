@@ -6,6 +6,7 @@ from typing import Dict
 from ..services.resume_parser import extract_text_from_pdf
 from ..services.ats_scorer import calculate_ats_score
 from ..services.explanation_generator import generate_explanations
+from ..services.recommendation_engine import generate_recommendations
 
 router = APIRouter()
 
@@ -60,9 +61,16 @@ async def score_resume(
     except Exception as e:
         explanations = ["Error generating explanations"]
 
+    # Generate recommendations
+    try:
+        recommendations = generate_recommendations(score_result["missing_skills"], role)
+    except Exception as e:
+        recommendations = {"projects": [], "learning_resources": [], "resume_improvements": []}
+
     # Return combined result
     return {
         **score_result,
         "explanations": explanations,
+        "recommendations": recommendations,
         "role": role
     }
