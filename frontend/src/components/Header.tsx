@@ -8,7 +8,7 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold">HireLens</Link>
           <nav>
-            <Link to="/" className="mr-4 hover:underline">Home</Link>
+            <Link to="/" className="mr-4 hover:underline">Dashboard</Link>
             <Link to="/about" className="hover:underline">About</Link>
           </nav>
         </div>
