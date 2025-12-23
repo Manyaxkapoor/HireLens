@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir --timeout=300 huggingface-hub==0.10.0
 RUN pip install --no-cache-dir --timeout=300 -r requirements.txt
 
 # Download spaCy model
