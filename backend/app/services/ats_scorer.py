@@ -1,13 +1,17 @@
-import spacy
+import re
 from typing import Dict, List
 from sentence_transformers import SentenceTransformer, util
 
-# Load spaCy model (assumes en_core_web_sm is installed)
+# Try to load spaCy model (optional)
 try:
+    import spacy
     nlp = spacy.load("en_core_web_sm")
-except OSError:
+    SPACY_AVAILABLE = True
+except (OSError, ImportError, Exception):
+    spacy = None
     nlp = None
-    print("Warning: spaCy model 'en_core_web_sm' not found. Install with: python -m spacy download en_core_web_sm")
+    SPACY_AVAILABLE = False
+    print("Warning: spaCy model 'en_core_web_sm' not found. Using fallback text processing.")
 
 # Load sentence transformer model
 try:
@@ -40,7 +44,7 @@ DEFAULT_ROLE_CONFIG = {
 
 def extract_skills(text: str) -> List[str]:
     """
-    Extract potential skills from text using spaCy POS tagging.
+    Extract potential skills from text using spaCy POS tagging or fallback regex.
 
     Args:
         text: Input text to extract skills from
@@ -48,19 +52,45 @@ def extract_skills(text: str) -> List[str]:
     Returns:
         List of unique skill keywords
     """
-    if not nlp or not text:
+    if not text:
         return []
 
-    doc = nlp(text.lower())
-    skills = [
-        token.lemma_
-        for token in doc
-        if token.pos_ in ['NOUN', 'PROPN', 'ADJ']
-        and not token.is_stop
-        and len(token.lemma_) > 2
-        and token.lemma_.isalnum()
-    ]
-    return list(set(skills))
+    if SPACY_AVAILABLE and nlp:
+        # Use spaCy for advanced NLP processing
+        doc = nlp(text.lower())
+        skills = [
+            token.lemma_
+            for token in doc
+            if token.pos_ in ['NOUN', 'PROPN', 'ADJ']
+            and not token.is_stop
+            and len(token.lemma_) > 2
+            and token.lemma_.isalnum()
+        ]
+        return list(set(skills))
+    else:
+        # Fallback: simple regex-based extraction
+        text_lower = text.lower()
+        # Common technical skills and keywords
+        skill_patterns = [
+            r'\b(python|javascript|java|c\+\+|c#|ruby|php|go|rust|typescript|swift|kotlin)\b',
+            r'\b(react|angular|vue|django|flask|fastapi|spring|express|laravel)\b',
+            r'\b(sql|mysql|postgresql|mongodb|redis|elasticsearch|cassandra)\b',
+            r'\b(aws|azure|gcp|docker|kubernetes|jenkins|git|linux|windows)\b',
+            r'\b(html|css|sass|scss|bootstrap|tailwind)\b',
+            r'\b(machine learning|ai|nlp|computer vision|deep learning)\b',
+            r'\b(api|rest|graphql|microservices|serverless)\b'
+        ]
+
+        skills = []
+        for pattern in skill_patterns:
+            matches = re.findall(pattern, text_lower)
+            skills.extend(matches)
+
+        # Also extract capitalized words that might be technologies
+        cap_words = re.findall(r'\b[A-Z][a-zA-Z0-9]*\b', text)
+        skills.extend([word.lower() for word in cap_words if len(word) > 2])
+
+        return list(set(skills))
 
 
 def compute_semantic_similarity(text1: str, text2: str) -> float:

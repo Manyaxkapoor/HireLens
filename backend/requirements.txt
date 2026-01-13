@@ -1,9 +1,9 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
-python-multipart==0.0.6
-pdfplumber==0.10.3
-spacy==3.7.2
-sentence-transformers==2.2.2
-huggingface-hub==0.10.0
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+pdfplumber
+sentence-transformers
+huggingface-hub
+# spacy  # Optional - will use fallback if not available
