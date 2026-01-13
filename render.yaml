@@ -26,12 +26,7 @@ services:
     plan: free
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
-    envVars:
-      - key: REACT_APP_API_URL
-        fromService:
-          type: web
-          name: hirelens-backend
-          property: host
+    dockerCommand: nginx -g 'daemon off;'
 
 databases:
   # PostgreSQL Database
