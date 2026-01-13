@@ -26,7 +26,6 @@ services:
     plan: free
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
-    dockerCommand: nginx -g 'daemon off;'
 
 databases:
   # PostgreSQL Database
